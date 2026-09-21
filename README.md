@@ -172,3 +172,19 @@ Copiez le contenu de [`homeassistant/sensors/autoconsommation_sensors.yaml`](hom
 
 ### 2. Dashboard Lovelace (`maison-2026.yaml`)
 Le dashboard complet prêt à l'emploi est disponible dans [`homeassistant/dashboards/maison-2026.yaml`](homeassistant/dashboards/maison-2026.yaml). Il intègre les cartes au format glassmorphism néon calibrées pour les proportions 16:10 de l'écran d'arcade.
+
+---
+
+## 🎮 Contrôles Arcade & Sortie de Jeu (Hotkey + Start)
+
+Sur la borne d'arcade équipée de deux encodeurs USB DragonRise (Joueur 1 et Joueur 2) :
+- **Bouton Hotkey (Coin / Select) :** Bouton 11 (Linux EV_KEY 299)
+- **Bouton Start (1P / 2P Start) :** Bouton 10 (Linux EV_KEY 298)
+- **Combinaison de sortie de jeu :** `Hotkey + Start` (maintien de Select/Coin puis appui sur Start).
+
+### Configuration RetroArch & Batocera appliquée :
+- `global.retroarch.all_users_control_menu=true` : permet à **n'importe quel joueur** (Joueur 1 ou Joueur 2) de déclencher la sortie de jeu sans risque d'inversion des ports USB.
+- `global.retroarch.quit_press_twice=false` : sortie instantanée dès la première pression sur la combinaison, sans invite de confirmation.
+- `global.retroarch.input_hotkey_block_delay=10` : délai de tolérance en frames évitant les ratés si le bouton Start est pressé quasi-simultanément avec Hotkey.
+- Les deux contrôleurs DragonRise sont déclarés individuellement dans `/userdata/system/configs/emulationstation/es_settings.cfg` sur leurs bus USB respectifs (`1-1.4` et `1-1.1`).
+

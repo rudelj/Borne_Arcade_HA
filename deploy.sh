@@ -64,12 +64,9 @@ else
 fi
 
 # 5. Configuration de l'autostart Batocera
-echo -e "${YELLOW}[4/6] Configuration de l'autostart Batocera (custom.sh)...${NC}"
-if [ -f "/userdata/system/custom.sh" ]; then
-    if ! grep -q "/userdata/system/services/ha_kiosk" "/userdata/system/custom.sh"; then
-        echo -e "\n# Home Assistant Kiosk Daemon\n/userdata/system/services/ha_kiosk start &" >> /userdata/system/custom.sh
-    fi
-else
+echo -e "\n${YELLOW}[4/6] Configuration de l'autostart Batocera (services)...${NC}"
+# Le service ha_kiosk est géré nativement par Batocera (system.services)
+if [ ! -f "/userdata/system/custom.sh" ]; then
     cp -f "$BATOCERA_SRC/custom.sh" /userdata/system/custom.sh
 fi
 
@@ -80,9 +77,12 @@ chmod +x /userdata/system/scripts/ha_daemon.py
 chmod +x /userdata/system/services/ha_kiosk
 chmod +x /userdata/system/custom.sh
 
-# Déclaration dans batocera.conf pour le gestionnaire de services
+# Déclaration des services et des paramètres Hotkey RetroArch dans batocera.conf
 if command -v batocera-settings-set &>/dev/null; then
     batocera-settings-set system.services "ha_kiosk"
+    batocera-settings-set global.retroarch.all_users_control_menu true
+    batocera-settings-set global.retroarch.quit_press_twice false
+    batocera-settings-set global.retroarch.input_hotkey_block_delay 10
 fi
 
 # Sauvegarde de l'overlay Batocera
