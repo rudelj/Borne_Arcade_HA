@@ -359,7 +359,7 @@ def python_health_watchdog():
             info = json.loads(val.get_js_value().to_string())
             connected = info.get("connected", False)
             hb_age = (time.time() * 1000 - info.get("lastHeartbeat", 0)) / 1000.0
-            
+
             if connected and hb_age < 30:
                 consecutive_unhealthy = 0
             else:
@@ -411,7 +411,7 @@ def trigger_quit(reason=""):
     return False
 
 def on_key_press(widget, event):
-    GLib.idle_add(trigger_quit, f"keyboard keyval={event.keyval}")
+    # Kiosk wake-up is intentionally restricted to START J1/J2.
     return True
 
 window.connect("key-press-event", on_key_press)
@@ -424,26 +424,41 @@ signal.signal(signal.SIGINT, handle_signal)
 signal.signal(signal.SIGTERM, handle_signal)
 
 # Arcade Input Listener Thread
+# Wake-up rule: Bouton B (code 292) ou Joystick sur l'un des encodeurs DragonRise (J1 ou J2).
+# Exclusive grab pour intercepter et avaler l'appui sans polluer EmulationStation.
 def input_listener():
     global running
     time.sleep(1.5)
-    
+
+    grabbed_devs = []
+
+    def ungrab_all():
+        for d in list(grabbed_devs):
+            try:
+                d.ungrab()
+            except Exception:
+                pass
+        grabbed_devs.clear()
+
     while running:
         opened_devs = {}
         for dev_path in glob.glob("/dev/input/event*"):
             try:
                 dev = evdev.InputDevice(dev_path)
-                name_l = dev.name.lower()
-                caps = dev.capabilities()
-                is_arcade = "joystick" in name_l or "dragonrise" in name_l or "gamepad" in name_l
-                has_keys = evdev.ecodes.EV_KEY in caps
-                if is_arcade or "keyboard" in name_l or has_keys:
-                    try:
-                        while dev.read_one():
-                            pass
-                    except Exception:
+                if "dragonrise" not in dev.name.lower():
+                    dev.close()
+                    continue
+                try:
+                    while dev.read_one():
                         pass
-                    opened_devs[dev.fd] = dev
+                except Exception:
+                    pass
+                try:
+                    dev.grab()
+                    grabbed_devs.append(dev)
+                except Exception as ge:
+                    print(f"[ha_kiosk] Note: grab sur {dev.name}: {ge}", flush=True)
+                opened_devs[dev.fd] = dev
             except Exception:
                 pass
 
@@ -456,24 +471,38 @@ def input_listener():
                 r, _, _ = select.select(opened_devs.values(), [], [], 1.0)
                 for dev in r:
                     for ev in dev.read():
-                        if ev.type == evdev.ecodes.EV_KEY and ev.value == 1:
-                            print(f"[ha_kiosk] Arcade Button pressed on {dev.name} (code={ev.code})", flush=True)
-                            GLib.idle_add(trigger_quit, f"button code={ev.code}")
+                        # Sortie sur Bouton B (code 292)
+                        if ev.type == evdev.ecodes.EV_KEY and ev.value == 1 and ev.code == 292:
+                            print(f"[ha_kiosk] Bouton B pressé sur {dev.name}; retour à EmulationStation", flush=True)
+                            ungrab_all()
+                            GLib.idle_add(trigger_quit, "Bouton B (J1/J2)")
                             return
+                        # Sortie sur mouvement de stick (si activé)
                         elif exit_on_stick and ev.type == evdev.ecodes.EV_ABS:
                             if ev.code in (evdev.ecodes.ABS_X, evdev.ecodes.ABS_Y):
                                 if abs(ev.value - 127) > 80:
-                                    print(f"[ha_kiosk] Arcade Stick moved on {dev.name} (axis={ev.code}, val={ev.value})", flush=True)
-                                    GLib.idle_add(trigger_quit, f"stick axis={ev.code}")
+                                    print(f"[ha_kiosk] Joystick déplacé sur {dev.name}; retour à EmulationStation", flush=True)
+                                    ungrab_all()
+                                    GLib.idle_add(trigger_quit, "Mouvement Joystick")
                                     return
                             elif ev.code in (evdev.ecodes.ABS_HAT0X, evdev.ecodes.ABS_HAT0Y):
                                 if ev.value != 0:
-                                    print(f"[ha_kiosk] D-Pad direction on {dev.name} (val={ev.value})", flush=True)
-                                    GLib.idle_add(trigger_quit, f"dpad={ev.value}")
+                                    print(f"[ha_kiosk] D-Pad déplacé sur {dev.name}; retour à EmulationStation", flush=True)
+                                    ungrab_all()
+                                    GLib.idle_add(trigger_quit, "Mouvement D-Pad")
                                     return
             except (OSError, IOError):
                 break
+
+        ungrab_all()
+        for dev in opened_devs.values():
+            try:
+                dev.close()
+            except Exception:
+                pass
         time.sleep(0.5)
+
+    ungrab_all()
 
 t = threading.Thread(target=input_listener, daemon=True)
 t.start()
