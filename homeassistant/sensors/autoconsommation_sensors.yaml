@@ -1,0 +1,79 @@
+# ==============================================================================
+# Capteurs Template d'Autoconsommation Solaire (Home Assistant)
+# À intégrer dans configuration.yaml sous la clé 'template:'
+# ==============================================================================
+
+template:
+  - sensor:
+      # Taux d'autoconsommation solaire de la journée en cours
+      - name: "Taux autoconsommation journalier"
+        unique_id: taux_autoconsommation_journalier
+        unit_of_measurement: "%"
+        state_class: measurement
+        availability: >
+          {{ has_value('sensor.production_solaire_journaliere') and has_value('sensor.injection_reseau_journaliere') }}
+        state: >
+          {% set prod = states('sensor.production_solaire_journaliere') | float(0) %}
+          {% set inj = states('sensor.injection_reseau_journaliere') | float(0) %}
+          {% if prod > 0 %}
+            {% set auto = [prod - inj, 0] | max %}
+            {% set pct = (auto / prod) * 100 %}
+            {{ [ [pct, 0] | max, 100 ] | min | round(1) }}
+          {% else %}
+            0
+          {% endif %}
+        attributes:
+          production_kwh: "{{ states('sensor.production_solaire_journaliere') | float(0) | round(2) }}"
+          injection_kwh: "{{ states('sensor.injection_reseau_journaliere') | float(0) | round(2) }}"
+          autoconsommation_kwh: >
+            {% set prod = states('sensor.production_solaire_journaliere') | float(0) %}
+            {% set inj = states('sensor.injection_reseau_journaliere') | float(0) %}
+            {{ [prod - inj, 0] | max | round(2) }}
+
+      # Taux d'autoconsommation solaire depuis le 1er janvier de l'année en cours
+      - name: "Taux autoconsommation annuel"
+        unique_id: taux_autoconsommation_annuel
+        unit_of_measurement: "%"
+        state_class: measurement
+        availability: >
+          {{ has_value('sensor.injection_reseau_annuelle') and has_value('sensor.production_solaire_totale') }}
+        state: >
+          {% set prod = [states('sensor.production_solaire_totale') | float(0) - 17210, 0] | max %}
+          {% set inj = states('sensor.injection_reseau_annuelle') | float(0) %}
+          {% if prod > 0 %}
+            {% set auto = [prod - inj, 0] | max %}
+            {% set pct = (auto / prod) * 100 %}
+            {{ [ [pct, 0] | max, 100 ] | min | round(1) }}
+          {% else %}
+            0
+          {% endif %}
+        attributes:
+          production_kwh: "{{ [states('sensor.production_solaire_totale') | float(0) - 17210, 0] | max | round(1) }}"
+          injection_kwh: "{{ states('sensor.injection_reseau_annuelle') | float(0) | round(1) }}"
+          autoconsommation_kwh: >
+            {% set prod = [states('sensor.production_solaire_totale') | float(0) - 17210, 0] | max %}
+            {% set inj = states('sensor.injection_reseau_annuelle') | float(0) %}
+            {{ [prod - inj, 0] | max | round(1) }}
+
+      # Surplus solaire instantané injecté
+      - name: "Surplus solaire non consomme jour"
+        unique_id: surplus_solaire_non_consomme_jour
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        availability: >
+          {{ has_value('sensor.injection_reseau_journaliere') }}
+        state: >
+          {% set v = states('sensor.injection_reseau_journaliere') | float(0) %}
+          {{ v | round(1) }}
+
+      - name: "Surplus solaire non consomme annee"
+        unique_id: surplus_solaire_non_consomme_annee
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        availability: >
+          {{ has_value('sensor.injection_reseau_annuelle') }}
+        state: >
+          {% set v = states('sensor.injection_reseau_annuelle') | float(0) %}
+          {{ v | round(1) }}

@@ -1,0 +1,17 @@
+# Configuration Kiosk Home Assistant pour Borne d'Arcade Batocera (Exemple)
+
+# URL Home Assistant à afficher en plein écran
+HA_URL="http://homeassistant.local:8123/maison-2026/accueil"
+
+# Identifiants de connexion Home Assistant (auto-login automatique)
+HA_USER="votre_nom_utilisateur"
+HA_PASSWORD="votre_mot_de_passe"
+
+# Temps d'inactivité en secondes avant de réafficher Home Assistant quand aucun jeu n'est lancé
+INACTIVITY_TIMEOUT=90
+
+# Quitter Home Assistant lors d'un mouvement du joystick arcade (true) ou seulement sur appui bouton (false)
+EXIT_ON_JOYSTICK_MOVE=true
+
+# Zoom de la page Web (1.0 = 100%, 1.1 = 110%, 0.9 = 90%)
+WEB_ZOOM=1.0

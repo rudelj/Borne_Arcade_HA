@@ -1,0 +1,23 @@
+# ==============================================================================
+# Compteurs Journaliers et Annuels (Utility Meter)
+# À intégrer dans configuration.yaml sous la clé 'utility_meter:'
+# ==============================================================================
+
+utility_meter:
+  # Injection réseau journalière (source : pince Shelly EM restitution)
+  energie_reseau_injection_journaliere:
+    source: sensor.shellyem_34945473dc31_channel_1_energie_restituee
+    name: "Injection reseau journaliere"
+    cycle: daily
+
+  # Injection réseau annuelle
+  energie_reseau_injection_annuelle:
+    source: sensor.shellyem_34945473dc31_channel_1_energie_restituee
+    name: "Injection reseau annuelle"
+    cycle: yearly
+
+  # Production solaire annuelle
+  production_solaire_annuelle:
+    source: sensor.production_solaire_totale
+    name: "Production solaire annuelle"
+    cycle: yearly

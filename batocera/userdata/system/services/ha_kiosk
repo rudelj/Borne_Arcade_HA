@@ -1,0 +1,44 @@
+#!/bin/bash
+DAEMON_SCRIPT="/userdata/system/scripts/ha_daemon.py"
+PID_FILE="/var/run/ha_daemon.pid"
+
+case "$1" in
+    start)
+        echo "[ha_kiosk service] Starting daemon..."
+        if [ -f "$PID_FILE" ] && kill -0 $(cat "$PID_FILE") 2>/dev/null; then
+            echo "[ha_kiosk service] Already running."
+            exit 0
+        fi
+        mkdir -p /userdata/system/logs
+        python3 "$DAEMON_SCRIPT" >/userdata/system/logs/ha_daemon.log 2>&1 &
+        ;;
+    stop)
+        echo "[ha_kiosk service] Stopping daemon..."
+        if [ -f "$PID_FILE" ]; then
+            kill $(cat "$PID_FILE") 2>/dev/null
+            rm -f "$PID_FILE"
+        fi
+        if [ -f "/var/run/ha_kiosk.pid" ]; then
+            kill $(cat "/var/run/ha_kiosk.pid") 2>/dev/null
+            rm -f /var/run/ha_kiosk.pid
+        fi
+        pkill -f "python3 /userdata/system/scripts/ha_daemon.py" 2>/dev/null
+        pkill -f "python3 /userdata/system/scripts/ha_kiosk.py" 2>/dev/null
+        ;;
+    restart)
+        "$0" stop
+        sleep 1
+        "$0" start
+        ;;
+    status)
+        if [ -f "$PID_FILE" ] && kill -0 $(cat "$PID_FILE") 2>/dev/null; then
+            echo "ha_kiosk service is running (PID $(cat $PID_FILE))."
+        else
+            echo "ha_kiosk service is stopped."
+        fi
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|status}"
+        exit 1
+        ;;
+esac

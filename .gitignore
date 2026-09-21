@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environment & Virtualenvs
+.env
+.venv
+env/
+venv/
+
+# Batocera Runtime & Logs
+*.pid
+/userdata/system/logs/*.log
+/userdata/system/configs/ha_kiosk/data/
+/tmp/
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
